@@ -2,6 +2,14 @@
 
 A simple Python tool for batch downloading Chinese A-share listed companies' annual reports from Juchao (巨潮) website.
 
+## 致谢
+
+本项目基于 [gonggaotong-download](https://github.com/gonggaotong/gonggaotong-download) 修改。
+
+gonggaotong-download 是一个功能完整的 Electron + Vue 桌面应用，支持 A股和美股公告批量下载。本项目在其基础上提取了核心的 A股年报下载功能，去除了 GUI 依赖，实现了纯命令行操作，便于集成到其他项目中。
+
+感谢 [gonggaotong](https://github.com/gonggaotong) 的开源贡献。
+
 ## 功能特点
 
 - 无需手动操作GUI，直接命令行下载
