@@ -1,11 +1,12 @@
-# Report_download_skill - 中美股年报批量下载工具
+# Report_download_skill - 中美港股年报批量下载工具
 
-支持 A股年报和美股年报(10-K/20-F)的批量下载工具。
+支持 A股年报、美股年报(10-K/20-F)和港股年报的批量下载工具。
 
 ## 功能特点
 
 - **A股下载**: 基于巨潮网 API，无需 GUI，直接命令行下载
 - **美股下载**: 基于 SEC EDGAR API，支持 10-K(美国本土公司)、20-F(外国公司)
+- **港股下载**: 基于 HKEX Title Search API，支持年报、中期报告、季报
 - 自动识别公司类型
 - 文件命名规范，包含股票代码、文档类型、日期
 
@@ -47,6 +48,20 @@ python sec_downloader.py --stock JD --types 20-F --start-year 2024 --end-year 20
 python sec_downloader.py --stock AAPL --types 10-K --start-year 2023 --list
 ```
 
+### 港股年报下载
+
+```bash
+# 下载美团(3690) 2024年年报
+python hkex_downloader.py --stock 3690 --year 2024
+
+# 下载腾讯(0700) 2024年年报，仅列出
+python hkex_downloader.py --stock 0700 --year 2024 --list
+
+# 下载美团 2024年和2025年年报
+python hkex_downloader.py --stock 3690 --year 2024
+python hkex_downloader.py --stock 3690 --year 2025
+```
+
 ## 详细参数
 
 ### A股 (juchao_downloader.py)
@@ -68,6 +83,15 @@ python sec_downloader.py --stock AAPL --types 10-K --start-year 2023 --list
 | `--start-year` | `-y1` | 开始年份 | 五年前 |
 | `--end-year` | `-y2` | 结束年份 | 今年 |
 | `--path` | `-p` | 保存路径 | ./sec_reports |
+| `--list` | `-l` | 仅列出公告，不下载 | False |
+
+### 港股 (hkex_downloader.py)
+
+| 参数 | 缩写 | 说明 | 默认值 |
+|------|------|------|--------|
+| `--stock` | `-s` | 股票代码（如 3690, 0700） | 3690 |
+| `--year` | `-y` | 年份 | 2024 |
+| `--path` | `-p` | 保存路径 | ./hkex_reports |
 | `--list` | `-l` | 仅列出公告，不下载 | False |
 
 ## 美股文档类型说明
@@ -115,12 +139,33 @@ Found 2 filings
 Done! Downloaded 2 files
 ```
 
+**港股下载**:
+```
+==================================================
+港股公告下载: 3690
+年份: 2024
+==================================================
+正在查询港交所披露易: 股票代码 3690, 年份 2024...
+股票代码 3690 对应的stockId: 198419
+搜索日期范围: 20240101 - 20250630
+找到 3 个表格行
+找到 1 条包含年份 2024 的年报
+
+找到 1 条公告
+
+[1/1] 2024 ANNUAL REPORT...
+  已下载: 3690_2025-04-28_2024 ANNUAL REPORT.pdf
+
+完成! 下载 1 个文件
+```
+
 ## 目录结构
 
 ```
 Report_download_skill/
 ├── juchao_downloader.py    # A股下载脚本
 ├── sec_downloader.py       # 美股下载脚本
+├── hkex_downloader.py     # 港股下载脚本
 ├── README.md              # 本文件
 └── requirements.txt       # 依赖
 ```
@@ -141,7 +186,9 @@ A: 任何在巨潮网可查询的 A 股公司都可以，支持沪深北交所�
 
 ## 致谢
 
-本项目基于 [gonggaotong-download](https://github.com/gonggaotong/gonggaotong-download) 修改。感谢 [gonggaotong](https://github.com/gonggaotong) 的开源贡献。
+本项目基于 [gonggaotong-download](https://github.com/gonggaotong/gonggaotong-download) 修改，感谢 [gonggaotong](https://github.com/gonggaotong) 的开源贡献。
+
+港股下载部分参考了 [FS-Capture](https://github.com/Eric-KY-Zhang/FS-Capture) 项目，特别感谢 [Eric-Zhang](https://github.com/Eric-KY-Zhang) 的研究贡献。
 
 ## 注意事项
 
