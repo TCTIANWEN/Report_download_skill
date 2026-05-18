@@ -15,7 +15,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
 # 配置
-SAVE_PATH = "/home/tianwen/年报数据"
+SAVE_PATH = "/home/tianwen/文档/try/公告数据"
 CNINFO_BASE_URL = "http://www.cninfo.com.cn"
 STATIC_BASE_URL = "http://static.cninfo.com.cn"
 
@@ -53,7 +53,14 @@ class JuchaoDownloader:
                 }
         return None
 
-    def search_announcements(self, stock_code, start_date, end_date):
+    # 文档类型对应的巨潮category代码
+    _CATEGORY_MAP = {
+        "annual": "category_ndbg_szsh",     # 年报
+        "interim": "category_bndbg_szsh",  # 半年报
+        "quarterly": "category_sjdbg_szsh", # 季报
+    }
+
+    def search_announcements(self, stock_code, start_date, end_date, doc_type="annual"):
         """搜索公告"""
         company = self.get_company_info(stock_code)
         if not company:
@@ -71,7 +78,7 @@ class JuchaoDownloader:
             'stock': f"{stock_code},{company['orgId']}",
             'searchkey': '',
             'secid': '',
-            'category': 'category_ndbg_szsh',
+            'category': self._CATEGORY_MAP.get(doc_type, "category_ndbg_szsh"),
             'trade': '',
             'seDate': f"{start_date}~{end_date}",
             'sortName': '',
@@ -123,7 +130,7 @@ class JuchaoDownloader:
             print(f"  ✗ 下载失败: {e}")
         return False
 
-    def download(self, stock_code, start_year, end_year=None):
+    def download(self, stock_code, start_year, end_year=None, doc_type="annual"):
         """执行下载"""
         if end_year is None:
             end_year = datetime.now().year
@@ -133,11 +140,12 @@ class JuchaoDownloader:
 
         print(f"\n{'='*50}")
         print(f"开始下载: {stock_code}")
+        print(f"报告类型: {doc_type}")
         print(f"时间范围: {start_date} ~ {end_date}")
         print(f"保存路径: {self.save_path}")
         print(f"{'='*50}\n")
 
-        announcements = self.search_announcements(stock_code, start_date, end_date)
+        announcements = self.search_announcements(stock_code, start_date, end_date, doc_type)
         print(f"找到 {len(announcements)} 条公告\n")
 
         if not announcements:
@@ -161,6 +169,9 @@ def main():
     parser.add_argument("--stock", "-s", default="601318", help="股票代码 (默认: 601318)")
     parser.add_argument("--start-year", "-y1", type=int, default=2020, help="开始年份 (默认: 2020)")
     parser.add_argument("--end-year", "-y2", type=int, default=None, help="结束年份 (默认: 今年)")
+    parser.add_argument("--type", "-t", default="annual",
+                        choices=["annual", "interim", "quarterly"],
+                        help="报告类型: annual(年报), interim(半年报), quarterly(季报) (默认: annual)")
     parser.add_argument("--path", "-p", default=SAVE_PATH, help="保存路径")
     parser.add_argument("--list", "-l", action="store_true", help="仅列出公告，不下载")
 
@@ -175,13 +186,14 @@ def main():
         announcements = downloader.search_announcements(
             args.stock,
             f"{args.start_year}-01-01",
-            f"{args.end_year}-12-31"
+            f"{args.end_year}-12-31",
+            args.type
         )
         for ann in announcements:
             time_str = datetime.fromtimestamp(ann['time'] / 1000).strftime('%Y-%m-%d')
             print(f"{time_str} | {ann['title']} | {ann['size']}KB")
     else:
-        downloader.download(args.stock, args.start_year, args.end_year)
+        downloader.download(args.stock, args.start_year, args.end_year, args.type)
 
 if __name__ == "__main__":
     main()

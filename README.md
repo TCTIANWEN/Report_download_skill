@@ -35,6 +35,16 @@ python juchao_downloader.py --stock 601318 --start-year 2020 --end-year 2024
 python juchao_downloader.py --stock 002475 --start-year 2020
 ```
 
+### A股季报下载
+
+```bash
+# 下载立讯精密(002475) 2023年三季度报告
+python juchao_downloader.py --stock 002475 --start-year 2023 --end-year 2023 --type quarterly
+
+# 下载格力电器(000651) 2024年一季报
+python juchao_downloader.py --stock 000651 --start-year 2024 --end-year 2024 --type quarterly --list
+```
+
 ### 美股年报下载
 
 ```bash
@@ -83,8 +93,14 @@ python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
 | `--stock` | `-s` | 股票代码（如 601318, 002475） | 601318 |
 | `--start-year` | `-y1` | 开始年份 | 2020 |
 | `--end-year` | `-y2` | 结束年份 | 今年 |
-| `--path` | `-p` | 保存路径 | ~/年报数据 |
+| `--type` | `-t` | 报告类型: annual/interim/quarterly | annual |
+| `--path` | `-p` | 保存路径 | ~/公告数据 |
 | `--list` | `-l` | 仅列出公告，不下载 | False |
+
+**报告类型 (--type)**:
+- `annual`: 年报 (category_ndbg_szsh)
+- `interim`: 半年报 (category_bndbg_szsh)
+- `quarterly`: 季报 (category_sjdbg_szsh)
 
 ### 美股 (sec_downloader.py)
 
