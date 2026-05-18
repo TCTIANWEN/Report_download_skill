@@ -54,10 +54,13 @@ class JuchaoDownloader:
         return None
 
     # 文档类型对应的巨潮category代码
+    # 注意: 季报分两种 - Q1(一季报)用category_yjdbg_szsh, Q3(三季报)用category_sjdbg_szsh
+    # Q2通常包含在半年报(category_bndbg_szsh)中
     _CATEGORY_MAP = {
         "annual": "category_ndbg_szsh",     # 年报
         "interim": "category_bndbg_szsh",  # 半年报
-        "quarterly": "category_sjdbg_szsh", # 季报
+        "quarterly": "",                    # 季报: 不限制category,后面用searchkey过滤
+        "quarterly_q1": "category_yjdbg_szsh",  # 一季报专用
     }
 
     def search_announcements(self, stock_code, start_date, end_date, doc_type="annual"):
@@ -86,14 +89,27 @@ class JuchaoDownloader:
             'isHLtitle': True,
         }
 
+        # 季报特殊处理: category留空,用searchkey过滤
+        if doc_type == "quarterly":
+            params['category'] = ''
+            params['searchkey'] = '季度报告'
+            # 过滤掉监事会审核意见等非报告文件
+            self._filter_quarterly = True
+        else:
+            self._filter_quarterly = False
+
         url = f"{CNINFO_BASE_URL}/new/hisAnnouncement/query"
         response = self.session.post(url, data=params, timeout=30)
         result = response.json()
 
         announcements = []
         for item in result.get('announcements', []):
+            title = item['announcementTitle']
+            # 季报时过滤掉监事会审核意见等非报告文件
+            if self._filter_quarterly and '审核意见' in title:
+                continue
             announcements.append({
-                'title': item['announcementTitle'],
+                'title': title,
                 'time': item['announcementTime'],
                 'url': item['adjunctUrl'],
                 'size': item['adjunctSize'],
