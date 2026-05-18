@@ -62,6 +62,18 @@ python hkex_downloader.py --stock 3690 --year 2024
 python hkex_downloader.py --stock 3690 --year 2025
 ```
 
+### 港股季度运营数据下载（季报）
+
+港股没有A股意义上的季报，但有**季度运营数据公告**（Quarterly Results），包含季度财务数据。
+
+```bash
+# 下载美团(3690) 2024年所有季度运营数据
+python hkex_downloader.py --stock 3690 --year 2024 --type quarterly
+
+# 仅列出美团2024年季度运营数据
+python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
+```
+
 ## 详细参数
 
 ### A股 (juchao_downloader.py)
@@ -91,8 +103,14 @@ python hkex_downloader.py --stock 3690 --year 2025
 |------|------|------|--------|
 | `--stock` | `-s` | 股票代码（如 3690, 0700） | 3690 |
 | `--year` | `-y` | 年份 | 2024 |
+| `--type` | `-t` | 报告类型: annual/interim/quarterly | annual |
 | `--path` | `-p` | 保存路径 | ./hkex_reports |
 | `--list` | `-l` | 仅列出公告，不下载 | False |
+
+**报告类型 (--type)**:
+- `annual`: 年报 (Annual Report)
+- `interim`: 中期报告 (Interim Report)
+- `quarterly`: 季度运营数据公告 (Quarterly Results)
 
 ## 美股文档类型说明
 
@@ -139,11 +157,12 @@ Found 2 filings
 Done! Downloaded 2 files
 ```
 
-**港股下载**:
+**港股年报下载**:
 ```
 ==================================================
 港股公告下载: 3690
 年份: 2024
+报告类型: annual
 ==================================================
 正在查询港交所披露易: 股票代码 3690, 年份 2024...
 股票代码 3690 对应的stockId: 198419
@@ -157,6 +176,27 @@ Done! Downloaded 2 files
   已下载: 3690_2025-04-28_2024 ANNUAL REPORT.pdf
 
 完成! 下载 1 个文件
+```
+
+**港股季度运营数据下载**:
+```
+==================================================
+港股公告下载: 3690
+年份: 2024
+报告类型: quarterly
+==================================================
+正在查询港交所披露易: 股票代码 3690, 年份 2024, 类型 quarterly...
+股票代码 3690 对应的stockId: 198419
+搜索日期范围: 20240101 - 20250331
+找到 100 个表格行
+找到 3 条包含年份 2024 的报告
+
+找到 3 条公告
+
+[1/3] ANNOUNCEMENT OF THE RESULTS FOR THE THREE MONTHS E...
+  已下载: 3690_2024-11-29_ANNOUNCEMENT OF THE RESULTS FO.pdf
+...
+完成! 下载 3 个文件
 ```
 
 ## 目录结构
