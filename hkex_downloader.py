@@ -30,18 +30,24 @@ _HEADERS = {
 _DOC_TYPES = {
     "annual": ("40000", "年报"),
     "interim": ("40000", "中期报告"),
-    "quarterly": ("40000", "季报"),
+    "quarterly": ("40001", "季度业绩公告"),  # 港股季度运营数据公告(季报)
 }
 
 # 排除的关键词
 _EXCLUDE_KEYWORDS = (
     "esg", "sustainability", "notification", "letter",
-    "circular", "proxy form", "announcement", "環境、社會及管治",
+    "circular", "proxy form", "環境、社會及管治",
     "環境、社會及管治", "通知", "通函", "業績", "业绩",
+    "share buyback", "next day disclosure", "monthly return",
+    "date of board meeting", "grant of restricted share",
 )
 
 # 包含的关键词
-_REPORT_KEYWORDS = ("annual report", "年報", "年度報告", "年报", "年度报告")
+_REPORT_KEYWORDS = (
+    "annual report", "年報", "年度報告", "年报", "年度报告",
+    "quarterly results", "interim results", "中期业绩", "季度业绩",
+    "results for the three months", "results for the three and six months",
+)
 
 
 def _normalize_code(code: str) -> str:
@@ -237,6 +243,60 @@ def _is_report_candidate(row: dict) -> bool:
     return _contains_any(doc_type, _REPORT_KEYWORDS)
 
 
+def search_reports(stock_code: str, year: int, doc_type: str = "annual") -> list:
+    """搜索指定类型和年份的报告"""
+    print(f"正在查询港交所披露易: 股票代码 {stock_code}, 年份 {year}, 类型 {doc_type}...")
+
+    # 获取stockId
+    try:
+        stock_id = _get_stock_id(stock_code)
+        print(f"股票代码 {stock_code} 对应的stockId: {stock_id}")
+    except Exception as e:
+        print(f"获取stockId失败: {e}")
+        return []
+
+    # 设置搜索日期范围
+    if doc_type == "annual":
+        # 年报通常在次年发布
+        from_date = f"{year}0101"
+        to_date = f"{year + 1}0630"
+    elif doc_type == "interim":
+        # 中期报告通常在下半年发布
+        from_date = f"{year}0101"
+        to_date = f"{year}1231"
+    elif doc_type == "quarterly":
+        # 季报: Q1(4-6月), Q2(7-9月), Q3(10-12月), Q4(次年1-3月)
+        # Q1运营数据->4月, Q2->7月, Q3->10月, Q4->次年1月
+        from_date = f"{year}0101"
+        to_date = f"{year + 1}0331"
+    else:
+        from_date = f"{year}0101"
+        to_date = f"{year + 1}0331"
+
+    print(f"搜索日期范围: {from_date} - {to_date}")
+
+    # 搜索公告
+    rows = _search_announcements(stock_id, stock_code, from_date, to_date, doc_type)
+    print(f"搜索返回 {len(rows)} 条结果")
+
+    # 过滤报告
+    candidates = [row for row in rows if _is_report_candidate(row)]
+
+    # 进一步过滤包含年份的结果
+    year_str = str(year)
+    year_candidates = [r for r in candidates if year_str in (r.get("title") or "")]
+
+    if year_candidates:
+        print(f"找到 {len(year_candidates)} 条包含年份 {year} 的报告")
+        return year_candidates
+    elif candidates:
+        print(f"找到 {len(candidates)} 条报告(未精确匹配年份)")
+        return candidates
+    else:
+        print("未找到报告")
+        return rows  # 返回所有结果供查看
+
+
 def search_annual_reports(stock_code: str, year: int) -> list:
     """搜索指定年份的年报"""
     print(f"正在查询港交所披露易: 股票代码 {stock_code}, 年份 {year}...")
@@ -298,10 +358,18 @@ def download_file(url: str, filename: str, save_path: Path) -> bool:
     return False
 
 
+def search_quarterly_reports(stock_code: str, year: int) -> list:
+    """搜索指定年份的季度报告"""
+    return search_reports(stock_code, year, "quarterly")
+
+
 def main():
     parser = argparse.ArgumentParser(description="HKEX 港股公告下载工具")
     parser.add_argument("--stock", "-s", default="3690", help="股票代码 (默认: 3690)")
     parser.add_argument("--year", "-y", type=int, default=2024, help="年份 (默认: 2024)")
+    parser.add_argument("--type", "-t", default="annual",
+                        choices=["annual", "interim", "quarterly"],
+                        help="报告类型: annual(年报), interim(中期报告), quarterly(季报/季度运营数据) (默认: annual)")
     parser.add_argument("--path", "-p", default=SAVE_PATH, help="保存路径")
     parser.add_argument("--list", "-l", action="store_true", help="仅列出，不下载")
 
@@ -313,11 +381,12 @@ def main():
     print(f"\n{'='*50}")
     print(f"港股公告下载: {args.stock}")
     print(f"年份: {args.year}")
+    print(f"报告类型: {args.type}")
     print(f"保存路径: {save_path}")
     print(f"{'='*50}\n")
 
     try:
-        results = search_annual_reports(args.stock, args.year)
+        results = search_reports(args.stock, args.year, args.type)
         print(f"\n找到 {len(results)} 条公告\n")
 
         if args.list:
