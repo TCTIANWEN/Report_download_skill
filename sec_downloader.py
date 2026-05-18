@@ -11,7 +11,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-SAVE_PATH = "./sec_reports"
+SAVE_PATH = "."
 SEC_BASE_URL = "https://www.sec.gov"
 EDGAR_BASE_URL = "https://data.sec.gov/submissions"
 
@@ -41,7 +41,45 @@ def get_submissions(cik):
     response = requests.get(url, headers=HEADERS, timeout=30)
     return response.json()
 
-def filter_filings(submissions, form_types, cik, start_year=None, end_year=None):
+# SEC表单类型
+_FORM_TYPES = {
+    "10-K",  # 年报
+    "10-Q",  # 季报 (Q1, Q2, Q3)
+}
+
+# 报告类型映射到SEC表单
+_REPORT_TYPE_MAP = {
+    "annual": ["10-K"],
+    "interim": ["10-Q"],  # 所有季报(Q1/Q2/Q3)
+    "q1": ["10-Q"],
+    "q2": ["10-Q"],
+    "q3": ["10-Q"],
+}
+
+# 季度过滤 (按发布日期: Q1=4月, Q2=7月, Q3=10月)
+_QUARTER_MONTHS = {
+    "q1": [4],      # Q1 ended March, published April
+    "q2": [7],      # Q2 ended June, published July (half-year)
+    "q3": [10],     # Q3 ended September, published October
+}
+
+def _get_quarter_from_date(date_str: str) -> str:
+    """根据发布日期判断季度 (SEC在季度结束后约一个月发布)
+    Q1 ended March -> 发布约4月 -> month=4
+    Q2 ended June -> 发布约7月 -> month=7
+    Q3 ended September -> 发布约10月 -> month=10
+    """
+    month = int(date_str.split('-')[1]) if date_str else 0
+    if month == 4:
+        return "q1"
+    elif month == 7:
+        return "q2"
+    elif month == 10:
+        return "q3"
+    return ""
+
+
+def filter_filings(submissions, form_types, cik, start_year=None, end_year=None, quarter=None):
     filings = submissions.get('filings', {}).get('recent', {})
     forms = filings.get('form', [])
     dates = filings.get('filingDate', [])
@@ -60,6 +98,12 @@ def filter_filings(submissions, form_types, cik, start_year=None, end_year=None)
                 continue
             if end_year and year > end_year:
                 continue
+            # 季度过滤 (按发布日期: Q1=4月, Q2=7月, Q3=10月)
+            if quarter:
+                q_months = _QUARTER_MONTHS.get(quarter, [])
+                month = int(date_str.split('-')[1]) if date_str else 0
+                if month not in q_months:
+                    continue
         accession_number = accession_numbers[i] if i < len(accession_numbers) else ''
         primary_doc = primary_documents[i] if i < len(primary_documents) else ''
         url = f"{SEC_BASE_URL}/Archives/edgar/data/{cik}/{accession_number.replace('-', '')}/{primary_doc}"
@@ -83,28 +127,58 @@ def download_file(url, save_path):
     return False
 
 def main():
-    parser = argparse.ArgumentParser(description="SEC EDGAR US Stock Report Downloader")
-    parser.add_argument("--stock", "-s", default="TSLA")
-    parser.add_argument("--types", "-t", default="10-K")
-    parser.add_argument("--start-year", "-y1", type=int, default=None)
-    parser.add_argument("--end-year", "-y2", type=int, default=None)
-    parser.add_argument("--path", "-p", default=SAVE_PATH)
-    parser.add_argument("--list", "-l", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="SEC EDGAR US Stock Report Downloader",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+快速使用:
+  年报:  python sec_downloader.py -s TSLA --year 2024 -t annual
+  半年报: python sec_downloader.py -s TSLA --year 2024 -t interim
+  一季报: python sec_downloader.py -s TSLA --year 2024 -t q1
+  三季报: python sec_downloader.py -s TSLA --year 2024 -t q3
+
+报告类型:
+  annual - 10-K 年报
+  interim - 10-Q 季报(含Q1/Q2/Q3所有季度)
+  q1 - 10-Q 一季报(4月发布)
+  q2 - 10-Q 半年报(7月发布)
+  q3 - 10-Q 三季报(10月发布)
+
+示例:
+  下载特斯拉2024年年报: sec_downloader.py -s TSLA --year 2024 -t annual
+  下载特斯拉2024年Q1季报: sec_downloader.py -s TSLA --year 2024 -t q1
+  下载特斯拉2024年Q3季报: sec_downloader.py -s TSLA --year 2024 -t q3
+  仅列出特斯拉2024年季报: sec_downloader.py -s TSLA --year 2024 -t q1 -l
+        """)
+    parser.add_argument("--stock", "-s", default="TSLA", help="Ticker代码 (默认: TSLA)")
+    parser.add_argument("--year", "-y", type=int, default=2024, help="年份 (默认: 2024)")
+    parser.add_argument("--type", "-t", default="annual",
+                        choices=["annual", "interim", "q1", "q2", "q3"],
+                        help="报告类型: annual(10-K年报), interim(10-Q), q1(Q1), q2(Q2/半年报), q3(Q3)")
+    parser.add_argument("--path", "-p", default=SAVE_PATH, help=f"保存路径 (默认: {SAVE_PATH})")
+    parser.add_argument("--list", "-l", action="store_true", help="仅列出，不下载")
     args = parser.parse_args()
 
-    form_types = args.types.split(',') if ',' in args.types else [args.types]
-    if args.start_year is None:
-        args.start_year = datetime.now().year - 5
-    if args.end_year is None:
-        args.end_year = datetime.now().year
+    # 获取表单类型
+    form_types = _REPORT_TYPE_MAP.get(args.type, ["10-K"])
+
+    # 年份范围
+    start_year = args.year
+    end_year = args.year
+
+    # 季度过滤 (q1/q2/q3 按月过滤，interim 不过滤)
+    quarter = args.type if args.type in ("q1", "q2", "q3") else None
 
     save_path = Path(args.path)
     save_path.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*50}")
     print(f"Downloading: {args.stock}")
-    print(f"Types: {', '.join(form_types)}")
-    print(f"Years: {args.start_year} - {args.end_year}")
+    print(f"Report Type: {args.type}")
+    print(f"Form Types: {', '.join(form_types)}")
+    print(f"Year: {args.year}")
+    if quarter:
+        print(f"Quarter: {quarter}")
     print(f"Path: {save_path}")
     print(f"{'='*50}\n")
 
@@ -120,7 +194,7 @@ def main():
         print(f"Failed to get submissions: {e}")
         return
 
-    filings = filter_filings(submissions, form_types, company['cik'], args.start_year, args.end_year)
+    filings = filter_filings(submissions, form_types, company['cik'], start_year, end_year, quarter)
     print(f"Found {len(filings)} filings\n")
 
     if args.list:

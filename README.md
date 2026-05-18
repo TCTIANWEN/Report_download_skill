@@ -49,15 +49,32 @@ python juchao_downloader.py -s 000651 --year 2024 -t quarterly -l
 ### 美股公告下载
 
 ```bash
-# 下载特斯拉(TSLA) 2024-2025年 10-K (美国本土公司)
-python sec_downloader.py --stock TSLA --types 10-K --start-year 2024 --end-year 2025
+# 年报: python sec_downloader.py -s TICKER --year 年份 -t annual
+python sec_downloader.py -s TSLA --year 2024 -t annual
 
-# 下载京东(JD) 2024-2025年 20-F (外国公司)
-python sec_downloader.py --stock JD --types 20-F --start-year 2024 --end-year 2025
+# 半年报: python sec_downloader.py -s TICKER --year 年份 -t interim
+python sec_downloader.py -s TSLA --year 2024 -t interim
 
-# 查看苹果(AAPL)近两年10-K列表
-python sec_downloader.py --stock AAPL --types 10-K --start-year 2023 --list
+# 一季报: python sec_downloader.py -s TICKER --year 年份 -t q1
+python sec_downloader.py -s TSLA --year 2024 -t q1
+
+# 三季报: python sec_downloader.py -s TICKER --year 年份 -t q3
+python sec_downloader.py -s TSLA --year 2024 -t q3
+
+# 示例: 下载特斯拉2024年年报
+python sec_downloader.py -s TSLA --year 2024 -t annual
+
+# 示例: 下载特斯拉2024年Q1季报
+python sec_downloader.py -s TSLA --year 2024 -t q1
+
+# 示例: 下载京东(JD) 2024年 20-F (外国公司年报)
+python sec_downloader.py -s JD --year 2024 -t annual
+
+# 示例: 仅列出特斯拉2024年Q1季报
+python sec_downloader.py -s TSLA --year 2024 -t q1 -l
 ```
+
+**美股说明**: 美股季报分10-Q(一季报)、10-Q(二季报/半年报)、10-Q(三季报)，年报为10-K。
 
 ### 港股公告下载
 
@@ -111,10 +128,17 @@ python hkex_downloader.py -s 0700 --year 2024 -t q3 -l
 | 参数 | 缩写 | 说明 | 默认值 |
 |------|------|------|--------|
 | `--stock` | `-s` | Ticker代码（如 TSLA, AAPL, JD） | TSLA |
-| `--types` | `-t` | 文档类型 | 10-K |
-| `--start-year` | `-y1` | 开始年份 | 五年前 |
-| `--end-year` | `-y2` | 结束年份 | 今年 |
-| `--path` | `-p` | 保存路径 | ./sec_reports |
+| `--year` | `-y` | 年份 | 2024 |
+| `--type` | `-t` | 报告类型: annual/interim/q1/q2/q3 | annual |
+| `--path` | `-p` | 保存路径 | 当前目录 |
+| `--list` | `-l` | 仅列出公告，不下载 | False |
+
+**报告类型 (--type)**:
+- `annual`: 10-K 年报
+- `interim`: 10-Q 全部季报(Q1/Q2/Q3)
+- `q1`: 10-Q 一季报(4月发布)
+- `q2`: 10-Q 二季报/半年报(7月发布)
+- `q3`: 10-Q 三季报(10月发布)
 | `--list` | `-l` | 仅列出公告，不下载 | False |
 
 ### 港股 (hkex_downloader.py)
@@ -183,20 +207,39 @@ python hkex_downloader.py -s 0700 --year 2024 -t q3 -l
 ✓ 下载完成，共 2 个文件
 ```
 
-**美股下载**:
+**美股年报下载**:
 ```
 ==================================================
 Downloading: TSLA
-Types: 10-K
-Years: 2024 - 2025
+Report Type: annual
+Form Types: ['10-K']
+Year: 2024
+Path: .
 ==================================================
 Found: Tesla, Inc. (TSLA), CIK: 1318605
-Found 2 filings
-[1/2] 10-K - 2025-01-30
-  Saved: TSLA_10-K_20250130.htm
-[2/2] 10-K - 2024-01-29
+Found 1 filings
+
+[1/1] 10-K - 2024-01-29
   Saved: TSLA_10-K_20240129.htm
-Done! Downloaded 2 files
+Done! Downloaded 1 files
+```
+
+**美股季报下载**:
+```
+==================================================
+Downloading: TSLA
+Report Type: q1
+Form Types: ['10-Q']
+Year: 2024
+Quarter: q1
+Path: .
+==================================================
+Found: Tesla, Inc. (TSLA), CIK: 1318605
+Found 1 filings
+
+[1/1] 10-Q - 2024-04-24
+  Saved: TSLA_10-Q_20240424.htm
+Done! Downloaded 1 files
 ```
 
 **港股年报下载**:
