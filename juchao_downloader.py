@@ -15,7 +15,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
 # 配置
-SAVE_PATH = "/home/tianwen/文档/try/公告数据"
+SAVE_PATH = "."
 CNINFO_BASE_URL = "http://www.cninfo.com.cn"
 STATIC_BASE_URL = "http://static.cninfo.com.cn"
 
@@ -181,35 +181,47 @@ class JuchaoDownloader:
         print(f"\n✓ 下载完成，共 {len(announcements)} 个文件")
 
 def main():
-    parser = argparse.ArgumentParser(description="巨潮A股公告下载工具")
+    parser = argparse.ArgumentParser(description="巨潮A股公告下载工具", formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+快速使用:
+  年报:  python juchao_downloader.py -s 002475 --year 2024 -t annual
+  半年报: python juchao_downloader.py -s 002475 --year 2024 -t interim
+  季报:  python juchao_downloader.py -s 002475 --year 2024 -t quarterly
+
+报告类型:
+  annual   - 年报 (category_ndbg_szsh)
+  interim  - 半年报 (category_bndbg_szsh)
+  quarterly - 一季报和三季报 (searchkey=季度报告)
+
+示例:
+  下载立讯精密2024年年报: juchao_downloader.py -s 002475 --year 2024 -t annual
+  下载立讯精密2024年半年报: juchao_downloader.py -s 002475 --year 2024 -t interim
+  下载立讯精密2024年季报: juchao_downloader.py -s 002475 --year 2024 -t quarterly
+  仅列出格力电器2024年季报: juchao_downloader.py -s 000651 --year 2024 -t quarterly -l
+        """)
     parser.add_argument("--stock", "-s", default="601318", help="股票代码 (默认: 601318)")
-    parser.add_argument("--start-year", "-y1", type=int, default=2020, help="开始年份 (默认: 2020)")
-    parser.add_argument("--end-year", "-y2", type=int, default=None, help="结束年份 (默认: 今年)")
+    parser.add_argument("--year", "-y", type=int, default=2024, help="年份 (默认: 2024)")
     parser.add_argument("--type", "-t", default="annual",
                         choices=["annual", "interim", "quarterly"],
-                        help="报告类型: annual(年报), interim(半年报), quarterly(季报) (默认: annual)")
-    parser.add_argument("--path", "-p", default=SAVE_PATH, help="保存路径")
+                        help="报告类型: annual(年报), interim(半年报), quarterly(一季报和三季报)")
+    parser.add_argument("--path", "-p", default=SAVE_PATH, help=f"保存路径 (默认: {SAVE_PATH})")
     parser.add_argument("--list", "-l", action="store_true", help="仅列出公告，不下载")
 
     args = parser.parse_args()
-
-    if args.end_year is None:
-        args.end_year = datetime.now().year
-
     downloader = JuchaoDownloader(save_path=args.path)
 
     if args.list:
         announcements = downloader.search_announcements(
             args.stock,
-            f"{args.start_year}-01-01",
-            f"{args.end_year}-12-31",
+            f"{args.year}-01-01",
+            f"{args.year}-12-31",
             args.type
         )
         for ann in announcements:
             time_str = datetime.fromtimestamp(ann['time'] / 1000).strftime('%Y-%m-%d')
             print(f"{time_str} | {ann['title']} | {ann['size']}KB")
     else:
-        downloader.download(args.stock, args.start_year, args.end_year, args.type)
+        downloader.download(args.stock, args.year, args.year, args.type)
 
 if __name__ == "__main__":
     main()

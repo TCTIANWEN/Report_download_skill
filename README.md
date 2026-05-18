@@ -1,13 +1,12 @@
-# Report_download_skill - 中美港股年报批量下载工具
+# Report_download_skill - 中美港股公告批量下载工具
 
-支持 A股年报、美股年报(10-K/20-F)和港股年报的批量下载工具。
+支持 A股、美股和港股公告的批量下载工具。
 
 ## 功能特点
 
-- **A股下载**: 基于巨潮网 API，无需 GUI，直接命令行下载
+- **A股下载**: 基于巨潮网 API，支持年报、半年报、一季报和三季报
 - **美股下载**: 基于 SEC EDGAR API，支持 10-K(美国本土公司)、20-F(外国公司)
-- **港股下载**: 基于 HKEX Title Search API，支持年报、中期报告、季报
-- 自动识别公司类型
+- **港股下载**: 基于 HKEX Title Search API，支持年报、半年报、一季度运营数据和三季度运营数据
 - 文件命名规范，包含股票代码、文档类型、日期
 
 ## 环境要求
@@ -25,27 +24,29 @@ pip install requests
 
 ## 快速使用
 
-### A股年报下载
+### A股公告下载
 
 ```bash
-# 下载中国平安(601318) 2020-2024年年报
-python juchao_downloader.py --stock 601318 --start-year 2020 --end-year 2024
+# 年报: python juchao_downloader.py -s 股票代码 --year 年份 -t annual
+python juchao_downloader.py -s 002475 --year 2024 -t annual
 
-# 下载立讯精密(002475)近5年
-python juchao_downloader.py --stock 002475 --start-year 2020
+# 半年报: python juchao_downloader.py -s 股票代码 --year 年份 -t interim
+python juchao_downloader.py -s 002475 --year 2024 -t interim
+
+# 一季报和三季报: python juchao_downloader.py -s 股票代码 --year 年份 -t quarterly
+python juchao_downloader.py -s 002475 --year 2024 -t quarterly
+
+# 示例: 下载立讯精密2024年年报
+python juchao_downloader.py -s 002475 --year 2024 -t annual
+
+# 示例: 下载立讯精密2024年季报(一季报和三季报)
+python juchao_downloader.py -s 002475 --year 2024 -t quarterly
+
+# 示例: 仅列出格力电器2024年季报
+python juchao_downloader.py -s 000651 --year 2024 -t quarterly -l
 ```
 
-### A股季报下载
-
-```bash
-# 下载立讯精密(002475) 2023年三季度报告
-python juchao_downloader.py --stock 002475 --start-year 2023 --end-year 2023 --type quarterly
-
-# 下载格力电器(000651) 2024年一季报
-python juchao_downloader.py --stock 000651 --start-year 2024 --end-year 2024 --type quarterly --list
-```
-
-### 美股年报下载
+### 美股公告下载
 
 ```bash
 # 下载特斯拉(TSLA) 2024-2025年 10-K (美国本土公司)
@@ -58,31 +59,35 @@ python sec_downloader.py --stock JD --types 20-F --start-year 2024 --end-year 20
 python sec_downloader.py --stock AAPL --types 10-K --start-year 2023 --list
 ```
 
-### 港股年报下载
+### 港股公告下载
 
 ```bash
-# 下载美团(3690) 2024年年报
-python hkex_downloader.py --stock 3690 --year 2024
+# 年报: python hkex_downloader.py -s 股票代码 --year 年份 -t annual
+python hkex_downloader.py -s 3690 --year 2024 -t annual
 
-# 下载腾讯(0700) 2024年年报，仅列出
-python hkex_downloader.py --stock 0700 --year 2024 --list
+# 半年报: python hkex_downloader.py -s 股票代码 --year 年份 -t interim
+python hkex_downloader.py -s 3690 --year 2024 -t interim
 
-# 下载美团 2024年和2025年年报
-python hkex_downloader.py --stock 3690 --year 2024
-python hkex_downloader.py --stock 3690 --year 2025
+# 一季度运营数据: python hkex_downloader.py -s 股票代码 --year 年份 -t q1
+python hkex_downloader.py -s 3690 --year 2024 -t q1
+
+# 三季度运营数据: python hkex_downloader.py -s 股票代码 --year 年份 -t q3
+python hkex_downloader.py -s 3690 --year 2024 -t q3
+
+# 示例: 下载美团2024年年报
+python hkex_downloader.py -s 3690 --year 2024 -t annual
+
+# 示例: 下载美团2024年Q1运营数据
+python hkex_downloader.py -s 3690 --year 2024 -t q1
+
+# 示例: 下载美团2024年Q3运营数据
+python hkex_downloader.py -s 3690 --year 2024 -t q3
+
+# 示例: 仅列出腾讯2024年Q3运营数据
+python hkex_downloader.py -s 0700 --year 2024 -t q3 -l
 ```
 
-### 港股季度运营数据下载（季报）
-
-港股没有A股意义上的季报，但有**季度运营数据公告**（Quarterly Results），包含季度财务数据。
-
-```bash
-# 下载美团(3690) 2024年所有季度运营数据
-python hkex_downloader.py --stock 3690 --year 2024 --type quarterly
-
-# 仅列出美团2024年季度运营数据
-python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
-```
+**港股说明**: 港股没有A股意义上的季报，但有季度运营数据公告（Quarterly Results），只有Q1和Q3的运营数据。
 
 ## 详细参数
 
@@ -91,16 +96,15 @@ python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
 | 参数 | 缩写 | 说明 | 默认值 |
 |------|------|------|--------|
 | `--stock` | `-s` | 股票代码（如 601318, 002475） | 601318 |
-| `--start-year` | `-y1` | 开始年份 | 2020 |
-| `--end-year` | `-y2` | 结束年份 | 今年 |
+| `--year` | `-y` | 年份 | 2024 |
 | `--type` | `-t` | 报告类型: annual/interim/quarterly | annual |
-| `--path` | `-p` | 保存路径 | ~/公告数据 |
+| `--path` | `-p` | 保存路径 | 当前目录 |
 | `--list` | `-l` | 仅列出公告，不下载 | False |
 
 **报告类型 (--type)**:
-- `annual`: 年报 (category_ndbg_szsh)
-- `interim`: 半年报 (category_bndbg_szsh)
-- `quarterly`: 季报 (category_sjdbg_szsh)
+- `annual`: 年报
+- `interim`: 半年报
+- `quarterly`: 一季报和三季报
 
 ### 美股 (sec_downloader.py)
 
@@ -119,14 +123,15 @@ python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
 |------|------|------|--------|
 | `--stock` | `-s` | 股票代码（如 3690, 0700） | 3690 |
 | `--year` | `-y` | 年份 | 2024 |
-| `--type` | `-t` | 报告类型: annual/interim/quarterly | annual |
-| `--path` | `-p` | 保存路径 | ./hkex_reports |
+| `--type` | `-t` | 报告类型: annual/interim/q1/q3 | annual |
+| `--path` | `-p` | 保存路径 | 当前目录 |
 | `--list` | `-l` | 仅列出公告，不下载 | False |
 
 **报告类型 (--type)**:
-- `annual`: 年报 (Annual Report)
-- `interim`: 中期报告 (Interim Report)
-- `quarterly`: 季度运营数据公告 (Quarterly Results)
+- `annual`: 年报
+- `interim`: 半年报
+- `q1`: 一季度运营数据公告
+- `q3`: 三季度运营数据公告
 
 ## 美股文档类型说明
 
@@ -144,17 +149,38 @@ python hkex_downloader.py --stock 3690 --year 2024 --type quarterly --list
 
 ## 输出示例
 
-**A股下载**:
+**A股年报下载**:
 ```
 ==================================================
-开始下载: 601318
-时间范围: 2020-01-01 ~ 2024-12-31
+开始下载: 002475
+报告类型: annual
+时间范围: 2024-01-01 ~ 2024-12-31
+保存路径: .
 ==================================================
-找到公司: 中国平安 (601318), orgId: 9900002221
-找到 14 条公告
-[1/14] 中国平安2023年年度报告
-  ✓ 已下载: 601318_中国平安2023年年度报告_2024-03-22.PDF
-✓ 下载完成，共 14 个文件
+找到公司: 立讯精密 (002475), orgId: 9900014448
+找到 1 条公告
+
+[1/1] 2024年年度报告
+  ✓ 已下载: 002475_2024年年度报告_2025-04-26.PDF
+✓ 下载完成，共 1 个文件
+```
+
+**A股季报下载**:
+```
+==================================================
+开始下载: 002475
+报告类型: quarterly
+时间范围: 2024-01-01 ~ 2024-12-31
+保存路径: .
+==================================================
+找到公司: 立讯精密 (002475), orgId: 9900014448
+找到 2 条公告
+
+[1/2] 2024年三季度报告
+  ✓ 已下载: 002475_2024年三季度报告_2024-10-26.PDF
+[2/2] 2024年一季度报告
+  ✓ 已下载: 002475_2024年一季度报告_2024-04-25.PDF
+✓ 下载完成，共 2 个文件
 ```
 
 **美股下载**:
@@ -179,40 +205,40 @@ Done! Downloaded 2 files
 港股公告下载: 3690
 年份: 2024
 报告类型: annual
+保存路径: .
 ==================================================
-正在查询港交所披露易: 股票代码 3690, 年份 2024...
+正在查询港交所披露易: 股票代码 3690, 年份 2024, 类型 annual...
 股票代码 3690 对应的stockId: 198419
 搜索日期范围: 20240101 - 20250630
 找到 3 个表格行
-找到 1 条包含年份 2024 的年报
+找到 1 条包含年份 2024 的报告
 
 找到 1 条公告
 
 [1/1] 2024 ANNUAL REPORT...
   已下载: 3690_2025-04-28_2024 ANNUAL REPORT.pdf
-
 完成! 下载 1 个文件
 ```
 
-**港股季度运营数据下载**:
+**港股Q1运营数据下载**:
 ```
 ==================================================
 港股公告下载: 3690
 年份: 2024
-报告类型: quarterly
+报告类型: q1
+保存路径: .
 ==================================================
-正在查询港交所披露易: 股票代码 3690, 年份 2024, 类型 quarterly...
+正在查询港交所披露易: 股票代码 3690, 年份 2024, 类型 q1...
 股票代码 3690 对应的stockId: 198419
-搜索日期范围: 20240101 - 20250331
-找到 100 个表格行
-找到 3 条包含年份 2024 的报告
+搜索日期范围: 20240401 - 20240630
+找到 44 个表格行
+找到 1 条包含年份 2024 的报告
 
-找到 3 条公告
+找到 1 条公告
 
-[1/3] ANNOUNCEMENT OF THE RESULTS FOR THE THREE MONTHS E...
-  已下载: 3690_2024-11-29_ANNOUNCEMENT OF THE RESULTS FO.pdf
-...
-完成! 下载 3 个文件
+[1/1] ANNOUNCEMENT OF THE RESULTS FOR THE THREE MONTHS E...
+  已下载: 3690_2024-06-06_ANNOUNCEMENT OF THE RESULTS FO.pdf
+完成! 下载 1 个文件
 ```
 
 ## 目录结构
@@ -239,6 +265,9 @@ A: 程序会自动重试。如果持续失败，可能是网络问题或 SEC 限
 
 **Q: 支持哪些中国公司？**
 A: 任何在巨潮网可查询的 A 股公司都可以，支持沪深北交所所有股票。
+
+**Q: A股季报为什么只有一季报和三季报，没有二季报？**
+A: A股季报制度中，二季度报告包含在半年报里，所以没有单独的"二季报"。
 
 ## 致谢
 

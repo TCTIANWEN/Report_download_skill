@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 import requests
 
-SAVE_PATH = "./hkex_reports"
+SAVE_PATH = "."
 _TITLESEARCH_URL = "https://www1.hkexnews.hk/search/titlesearch.xhtml"
 _PDF_HOST = "https://www1.hkexnews.hk"
 _PREFIX_URL = "https://www1.hkexnews.hk/search/prefix.do"
@@ -30,7 +30,8 @@ _HEADERS = {
 _DOC_TYPES = {
     "annual": ("40000", "年报"),
     "interim": ("40000", "中期报告"),
-    "quarterly": ("40001", "季度业绩公告"),  # 港股季度运营数据公告(季报)
+    "q1": ("40001", "一季度运营数据"),
+    "q3": ("40001", "三季度运营数据"),
 }
 
 # 排除的关键词
@@ -47,6 +48,7 @@ _REPORT_KEYWORDS = (
     "annual report", "年報", "年度報告", "年报", "年度报告",
     "quarterly results", "interim results", "中期业绩", "季度业绩",
     "results for the three months", "results for the three and six months",
+    "first quarter", "third quarter",  # Q1, Q3运营数据
 )
 
 
@@ -228,19 +230,33 @@ def _contains_any(text: str, keywords: tuple) -> bool:
     return any(kw.lower() in lowered for kw in keywords)
 
 
-def _is_report_candidate(row: dict) -> bool:
+def _is_report_candidate(row: dict, doc_type: str = "annual") -> bool:
     """检查是否是报告候选"""
     title = row.get("title") or ""
-    doc_type = row.get("doc_type") or ""
+    headline = row.get("headline") or ""
+    doc_type_label = row.get("doc_type") or ""
 
     # 排除非报告
     if _contains_any(title, _EXCLUDE_KEYWORDS):
         return False
 
-    # 检查关键词
-    if _contains_any(title, _REPORT_KEYWORDS):
-        return True
-    return _contains_any(doc_type, _REPORT_KEYWORDS)
+    # 年报/半年报
+    if doc_type in ("annual", "interim"):
+        if _contains_any(title, _REPORT_KEYWORDS):
+            return True
+        return _contains_any(doc_type_label, _REPORT_KEYWORDS)
+
+    # Q1: 一季度运营数据
+    if doc_type == "q1":
+        return _contains_any(title, ("first quarter", "results for the three months ended march")) or \
+               _contains_any(doc_type_label, ("Quarterly Results",))
+
+    # Q3: 三季度运营数据
+    if doc_type == "q3":
+        return _contains_any(title, ("third quarter", "results for the three months ended september")) or \
+               _contains_any(doc_type_label, ("Quarterly Results",))
+
+    return False
 
 
 def search_reports(stock_code: str, year: int, doc_type: str = "annual") -> list:
@@ -261,14 +277,17 @@ def search_reports(stock_code: str, year: int, doc_type: str = "annual") -> list
         from_date = f"{year}0101"
         to_date = f"{year + 1}0630"
     elif doc_type == "interim":
-        # 中期报告通常在下半年发布
+        # 半年报通常在下半年发布
         from_date = f"{year}0101"
         to_date = f"{year}1231"
-    elif doc_type == "quarterly":
-        # 季报: Q1(4-6月), Q2(7-9月), Q3(10-12月), Q4(次年1-3月)
-        # Q1运营数据->4月, Q2->7月, Q3->10月, Q4->次年1月
-        from_date = f"{year}0101"
-        to_date = f"{year + 1}0331"
+    elif doc_type == "q1":
+        # 一季度运营数据: 4月发布
+        from_date = f"{year}0401"
+        to_date = f"{year}0630"
+    elif doc_type == "q3":
+        # 三季度运营数据: 10月发布
+        from_date = f"{year}1001"
+        to_date = f"{year}1231"
     else:
         from_date = f"{year}0101"
         to_date = f"{year + 1}0331"
@@ -280,7 +299,7 @@ def search_reports(stock_code: str, year: int, doc_type: str = "annual") -> list
     print(f"搜索返回 {len(rows)} 条结果")
 
     # 过滤报告
-    candidates = [row for row in rows if _is_report_candidate(row)]
+    candidates = [row for row in rows if _is_report_candidate(row, doc_type)]
 
     # 进一步过滤包含年份的结果
     year_str = str(year)
@@ -364,13 +383,35 @@ def search_quarterly_reports(stock_code: str, year: int) -> list:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="HKEX 港股公告下载工具")
+    parser = argparse.ArgumentParser(description="HKEX 港股公告下载工具", formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+快速使用:
+  年报:  python hkex_downloader.py -s 3690 --year 2024 -t annual
+  半年报: python hkex_downloader.py -s 3690 --year 2024 -t interim
+  一季度运营数据: python hkex_downloader.py -s 3690 --year 2024 -t q1
+  三季度运营数据: python hkex_downloader.py -s 3690 --year 2024 -t q3
+
+报告类型:
+  annual - 年报 (Annual Report)
+  interim - 半年报 (Interim Report)
+  q1 - 一季度运营数据公告 (Quarterly Results for Q1)
+  q3 - 三季度运营数据公告 (Quarterly Results for Q3)
+
+注意: 港股没有A股意义上的季报，但有季度运营数据公告(Q1和Q3)
+
+示例:
+  下载美团2024年年报: hkex_downloader.py -s 3690 --year 2024 -t annual
+  下载美团2024年半年报: hkex_downloader.py -s 3690 --year 2024 -t interim
+  下载美团2024年Q1运营数据: hkex_downloader.py -s 3690 --year 2024 -t q1
+  下载美团2024年Q3运营数据: hkex_downloader.py -s 3690 --year 2024 -t q3
+  仅列出腾讯2024年Q3运营数据: hkex_downloader.py -s 0700 --year 2024 -t q3 -l
+        """)
     parser.add_argument("--stock", "-s", default="3690", help="股票代码 (默认: 3690)")
     parser.add_argument("--year", "-y", type=int, default=2024, help="年份 (默认: 2024)")
     parser.add_argument("--type", "-t", default="annual",
-                        choices=["annual", "interim", "quarterly"],
-                        help="报告类型: annual(年报), interim(中期报告), quarterly(季报/季度运营数据) (默认: annual)")
-    parser.add_argument("--path", "-p", default=SAVE_PATH, help="保存路径")
+                        choices=["annual", "interim", "q1", "q3"],
+                        help="报告类型: annual(年报), interim(半年报), q1(一季度运营数据), q3(三季度运营数据)")
+    parser.add_argument("--path", "-p", default=SAVE_PATH, help=f"保存路径 (默认: {SAVE_PATH})")
     parser.add_argument("--list", "-l", action="store_true", help="仅列出，不下载")
 
     args = parser.parse_args()
