@@ -36,7 +36,7 @@ python juchao_downloader.py -s 002475 --year 2024 -t interim
 # 一季报和三季报: python juchao_downloader.py -s 股票代码 --year 年份 -t quarterly
 python juchao_downloader.py -s 002475 --year 2024 -t quarterly
 
-# 示例: 下载立讯精密2024年年报
+# 示例: 下载立讯精密2024年年报 (保存到当前目录)
 python juchao_downloader.py -s 002475 --year 2024 -t annual
 
 # 示例: 下载立讯精密2024年季报(一季报和三季报)
@@ -44,6 +44,9 @@ python juchao_downloader.py -s 002475 --year 2024 -t quarterly
 
 # 示例: 仅列出格力电器2024年季报
 python juchao_downloader.py -s 000651 --year 2024 -t quarterly -l
+
+# 示例: 下载立讯精密2024年年报到指定目录
+python juchao_downloader.py -s 002475 --year 2024 -t annual -p ./reports
 ```
 
 ### 美股公告下载
@@ -61,7 +64,7 @@ python sec_downloader.py -s TSLA --year 2024 -t q1
 # 三季报: python sec_downloader.py -s TICKER --year 年份 -t q3
 python sec_downloader.py -s TSLA --year 2024 -t q3
 
-# 示例: 下载特斯拉2024年年报
+# 示例: 下载特斯拉2024年年报 (保存到当前目录)
 python sec_downloader.py -s TSLA --year 2024 -t annual
 
 # 示例: 下载特斯拉2024年Q1季报
@@ -72,6 +75,9 @@ python sec_downloader.py -s JD --year 2024 -t annual
 
 # 示例: 仅列出特斯拉2024年Q1季报
 python sec_downloader.py -s TSLA --year 2024 -t q1 -l
+
+# 示例: 下载特斯拉2024年Q1季报到指定目录
+python sec_downloader.py -s TSLA --year 2024 -t q1 -p ./sec_data
 ```
 
 **美股说明**: 美股季报分10-Q(一季报)、10-Q(二季报/半年报)、10-Q(三季报)，年报为10-K。
@@ -91,7 +97,7 @@ python hkex_downloader.py -s 3690 --year 2024 -t q1
 # 三季度运营数据: python hkex_downloader.py -s 股票代码 --year 年份 -t q3
 python hkex_downloader.py -s 3690 --year 2024 -t q3
 
-# 示例: 下载美团2024年年报
+# 示例: 下载美团2024年年报 (保存到当前目录)
 python hkex_downloader.py -s 3690 --year 2024 -t annual
 
 # 示例: 下载美团2024年Q1运营数据
@@ -102,6 +108,9 @@ python hkex_downloader.py -s 3690 --year 2024 -t q3
 
 # 示例: 仅列出腾讯2024年Q3运营数据
 python hkex_downloader.py -s 0700 --year 2024 -t q3 -l
+
+# 示例: 下载美团2024年Q1运营数据到指定目录
+python hkex_downloader.py -s 3690 --year 2024 -t q1 -p ./hkex_data
 ```
 
 **港股说明**: 港股没有A股意义上的季报，但有季度运营数据公告（Quarterly Results），只有Q1和Q3的运营数据。
